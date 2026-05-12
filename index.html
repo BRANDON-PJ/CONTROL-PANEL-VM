@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Remote Control System</title>
+  <style>
+    body {
+      background: black;
+      color: #00ff00;
+      font-family: monospace;
+      text-align: center;
+      margin-top: 80px;
+    }
+    button {
+      padding: 15px;
+      font-size: 18px;
+      margin: 10px;
+      cursor: pointer;
+    }
+    .box {
+      border: 1px solid #00ff00;
+      padding: 20px;
+      display: inline-block;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Remote Session Node</h1>
+
+  <div class="box">
+    <p>Status: OFFLINE</p>
+    <p>Latency: -- ms</p>
+    <button onclick="connect()">CONNECT</button>
+    <button onclick="fullscreen()">FULLSCREEN</button>
+  </div>
+
+  <script>
+    function connect() {
+      alert("Connecting to remote node...");
+    }
+
+    function fullscreen() {
+      document.documentElement.requestFullscreen();
+    }
+  </script>
+
+</body>
+</html>
