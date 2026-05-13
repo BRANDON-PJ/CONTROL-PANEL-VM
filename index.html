@@ -1,31 +1,59 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Remote Control Demo</title>
+  <title>Remote Session</title>
+  <style>
+    body { background: #000; color: #fff; font-family: monospace; text-align: center; padding: 40px; margin: 0; }
+    h1 { color: #00ff88; }
+    #status { color: #aaa; margin: 20px 0; }
+    #screen { width: 100%; max-width: 1280px; border-radius: 8px; display: none; background: #111; }
+  </style>
 </head>
+<body>
+  <h1>Remote Session</h1>
+  <div id="status">Connecting to host...</div>
+  <video id="screen" autoplay playsinline controls></video>
 
-<body style="background:black;color:lime;text-align:center;margin-top:100px;font-family:monospace;">
+  <script>
+    const WS_URL = location.origin.replace(/^http/, "ws") + "/connect";
+    let ws, pc;
 
-<h1>Remote Session</h1>
+    function connect() {
+      ws = new WebSocket(WS_URL);
+      ws.onopen = () => ws.send(JSON.stringify({ type: "register-viewer" }));
+      ws.onmessage = async (e) => {
+        const msg = JSON.parse(e.data);
+        if (msg.type === "offer") {
+          pc = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] });
+          pc.ontrack = (e) => {
+            const video = document.getElementById("screen");
+            video.srcObject = e.streams[0];
+            video.style.display = "block";
+            document.getElementById("status").textContent = "Connected";
+          };
+          pc.onicecandidate = (e) => {
+            if (e.candidate) ws.send(JSON.stringify({ type: "ice-candidate", candidate: e.candidate }));
+          };
+          await pc.setRemoteDescription(new RTCSessionDescription(msg.sdp));
+          const answer = await pc.createAnswer();
+          await pc.setLocalDescription(answer);
+          ws.send(JSON.stringify({ type: "answer", sdp: pc.localDescription }));
+        }
+        if (msg.type === "ice-candidate" && msg.candidate) {
+          if (pc) pc.addIceCandidate(new RTCIceCandidate(msg.candidate)).catch(() => {});
+        }
+        if (msg.type === "host-disconnected") {
+          document.getElementById("status").textContent = "Host disconnected.";
+          document.getElementById("screen").style.display = "none";
+        }
+      };
+      ws.onclose = () => {
+        document.getElementById("status").textContent = "Connection lost. Reconnecting...";
+        setTimeout(connect, 2000);
+      };
+    }
 
-<button onclick="connect()" style="padding:20px;font-size:20px;">
-CONNECT
-</button>
-
-<button onclick="document.documentElement.requestFullscreen()">
-FULLSCREEN
-</button>
-
-<script>
-function connect() {
-  fetch("https://ff598748-f0a5-428d-a658-18e20951eee9-00-2fl3rmfd8elz.picard.replit.dev/connect", { method: "POST" });
-  window.open(
-    "https://ff598748-f0a5-428d-a658-18e20951eee9-00-2fl3rmfd8elz.picard.replit.dev/viewer",
-    "_blank"
-  );
-}
-
-</script>
-
+    connect();
+  </script>
 </body>
 </html>
